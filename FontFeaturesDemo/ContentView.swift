@@ -231,37 +231,84 @@ struct FontConfig: Identifiable, Hashable {
     }
 
     static let allFonts: [FontConfig] = [
+        // System Fonts
         FontConfig(displayName: "System Font (SF Pro)", postScriptName: "system", isSystemFont: true),
         FontConfig(displayName: "System Font Rounded", postScriptName: "system-rounded", isSystemFont: true),
         FontConfig(displayName: "System Font Monospaced", postScriptName: "system-mono", isSystemFont: true),
         FontConfig(displayName: "System Font Serif", postScriptName: "system-serif", isSystemFont: true),
+        // DD Norms
         FontConfig(displayName: "DD Norms Regular", postScriptName: "DDNorms-Rg"),
+        // TT Norms
         FontConfig(displayName: "TT Norms Medium", postScriptName: "TTNorms-Medium"),
+        FontConfig(displayName: "TT Norms Bold", postScriptName: "TTNorms-Bold"),
+        // Omnes
+        FontConfig(displayName: "Omnes Bold", postScriptName: "Omnes-Bold"),
+        FontConfig(displayName: "Omnes SemiBold", postScriptName: "OmnesSemiBold"),
+        // SQ Market
+        FontConfig(displayName: "SQ Market Regular", postScriptName: "SQMarket-Regular"),
+        FontConfig(displayName: "SQ Market Medium", postScriptName: "SQMarket-Medium"),
+        FontConfig(displayName: "SQ Market Bold", postScriptName: "SQMarket-Bold"),
+        // Inter
+        FontConfig(displayName: "Inter Regular", postScriptName: "Inter-Regular"),
+        FontConfig(displayName: "Inter SemiBold", postScriptName: "Inter-SemiBold"),
     ]
 }
 
 // MARK: - Main Navigation View
 
 struct ContentView: View {
+    @State private var searchText = ""
+
+    private var filteredFonts: [FontConfig] {
+        if searchText.isEmpty {
+            return FontConfig.allFonts
+        }
+        return FontConfig.allFonts.filter {
+            $0.displayName.localizedCaseInsensitiveContains(searchText) ||
+            $0.postScriptName.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
     var body: some View {
         NavigationStack {
-            List(FontConfig.allFonts) { font in
+            List(filteredFonts) { font in
                 NavigationLink(value: font) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(font.displayName)
-                            .font(.headline)
-                        Text(font.postScriptName)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.vertical, 4)
+                    FontListRow(fontConfig: font)
                 }
             }
             .navigationTitle("Font Feature Demos")
+            .searchable(text: $searchText, prompt: "Search fonts")
             .navigationDestination(for: FontConfig.self) { font in
                 FontDemoView(fontConfig: font)
             }
         }
+    }
+}
+
+struct FontListRow: View {
+    let fontConfig: FontConfig
+
+    private var displayFont: UIFont {
+        let tester = OpenTypeFeatureTester(fontConfig: fontConfig, fontSize: 20)
+        return tester.loadFont() ?? UIFont.systemFont(ofSize: 20)
+    }
+
+    private var attributedName: NSAttributedString {
+        NSAttributedString(
+            string: fontConfig.displayName,
+            attributes: [.font: displayFont]
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            AttributedText(attributedString: attributedName)
+                .frame(height: 28)
+            Text(fontConfig.postScriptName)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(.vertical, 4)
     }
 }
 
